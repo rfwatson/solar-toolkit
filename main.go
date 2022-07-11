@@ -1,15 +1,18 @@
 package main
 
 import (
+	"context"
+	"encoding/json"
 	"flag"
-	"fmt"
 	"log"
 	"net"
 	"os"
-	"strings"
+	"time"
 
-	"git.netflux.io/rob/goodwe-go/command"
+	"git.netflux.io/rob/goodwe-go/inverter"
 )
+
+const commandTimeout = time.Second * 5
 
 func main() {
 	var ipAddr string
@@ -21,7 +24,13 @@ func main() {
 		os.Exit(1)
 	}
 
-	fmt.Println("ipAddr", ipAddr)
+	arg := flag.Arg(0)
+	if arg != "discover" && arg != "runtime" && arg != "info" {
+		log.Fatal("missing command: [discover|runtime|info]")
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), commandTimeout)
+	defer cancel()
 
 	conn, err := net.Dial("udp", ipAddr)
 	if err != nil {
@@ -29,26 +38,32 @@ func main() {
 	}
 	defer conn.Close()
 
-	infoCmd, err := command.NewAA55("010200", "0182")
-	if err != nil {
-		log.Fatalf("error building command: %s", err)
+	var (
+		inverter inverter.ET
+		output   any
+	)
+
+	switch arg {
+	case "discover":
+		log.Fatal("not yet implemented")
+	case "info":
+		output, err = inverter.DeviceInfo(ctx, conn)
+		if err != nil {
+			log.Fatalf("error getting device info: %s", err)
+		}
+	case "runtime":
+		output, err = inverter.RuntimeData(ctx, conn)
+		if err != nil {
+			log.Fatalf("error getting runtime data: %s", err)
+		}
 	}
 
-	resp, err := command.Send(infoCmd, conn)
+	json, err := json.Marshal(output)
 	if err != nil {
-		log.Fatalf("error sending command: %s", err)
+		log.Fatalf("error encoding JSON: %s", err)
 	}
 
-	modelName := strings.TrimSpace(string(resp[12:22]))
-	serialNum := string(resp[38:54])
-
-	log.Printf("modelName = %q, serialNum = %q\n", modelName, serialNum)
-
-	dataCmd := command.NewModbus(command.ModbusCommandTypeRead, 0x891c, 0x007d)
-	resp, err = command.Send(dataCmd, conn)
-	if err != nil {
-		log.Fatalf("error sending command: %s", err)
+	if _, err = os.Stdout.Write(json); err != nil {
+		log.Fatalf("error writing to stdout: %s", err)
 	}
-
-	log.Printf("rcvd modbus resp = %X", resp)
 }

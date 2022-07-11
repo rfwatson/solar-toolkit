@@ -41,19 +41,19 @@ func aa55Checksum(payload []byte) []byte {
 
 func (cmd AA55Command) String() string { return string(cmd.payload) }
 
-func (cmd AA55Command) validateResponse(p []byte) error {
+func (cmd AA55Command) validateResponse(p []byte) ([]byte, error) {
 	if len(p) < 8 {
-		return fmt.Errorf("response truncated")
+		return nil, fmt.Errorf("response truncated")
 	}
 
 	expectedLen := int(p[aa55ResponseLengthIndex] + aa55ResponseLengthOffset)
 	if len(p) != expectedLen {
-		return fmt.Errorf("unexpected response length %d (expected %d)", len(p), expectedLen)
+		return nil, fmt.Errorf("unexpected response length %d (expected %d)", len(p), expectedLen)
 	}
 
 	responseType := hex.EncodeToString(p[4:6])
 	if responseType != cmd.responseType {
-		return fmt.Errorf("unexpected response type `%s` (expected `%s`)", responseType, cmd.responseType)
+		return nil, fmt.Errorf("unexpected response type `%s` (expected `%s`)", responseType, cmd.responseType)
 	}
 
 	var sum uint16
@@ -62,8 +62,9 @@ func (cmd AA55Command) validateResponse(p []byte) error {
 	}
 	expSum := binary.BigEndian.Uint16(p[len(p)-2:])
 	if sum != expSum {
-		return fmt.Errorf("invalid response checksum %d (expected %d)", sum, expSum)
+		return nil, fmt.Errorf("invalid response checksum %d (expected %d)", sum, expSum)
 	}
 
-	return nil
+	// FIXME: use correct offsets
+	return p[5 : len(p)-2], nil
 }
