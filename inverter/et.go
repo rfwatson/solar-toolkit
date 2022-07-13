@@ -8,13 +8,21 @@ import (
 	"io"
 	"math"
 	"strings"
+	"time"
 
 	"git.netflux.io/rob/goodwe-go/command"
 )
 
+// The timezone used to parse timestamps.
+const locationName = "Europe/Madrid"
+
 type ET struct {
 	SerialNumber string
 	ModelName    string
+}
+
+func (inv ET) isSinglePhase() bool {
+	return strings.Contains(inv.SerialNumber, "EHU")
 }
 
 // Unexported struct used for parsing binary data only.
@@ -53,8 +61,20 @@ func (info *etDeviceInfo) toDeviceInfo() *DeviceInfo {
 }
 
 // Unexported struct used for parsing binary data only.
+//
+// Raw types are based partly on the the PyPI library, and partly on the
+// third-party online documentation:
+//
+// https://github.com/marcelblijleven/goodwe/blob/327c7803e8415baeb4b6252431db91e1fc6f2fb3
+// https://github.com/tkubec/GoodWe/wiki/ET-Series-Registers
+//
+// It's especially unclear whether fields should be parsed signed or unsigned.
+// Handling differs in the above two sources. In most cases, overflowing a
+// uint16 max value is unlikely but it may have an impact on handling negative
+// values. To allow for the latter case, signed types are mostly preferred
+// below.
 type etRuntimeData struct {
-	_                      [6]byte
+	Timestamp              [6]byte
 	PV1Voltage             int16
 	PV1Current             int16
 	PV1Power               int32
@@ -117,8 +137,8 @@ type etRuntimeData struct {
 	WorkMode               int32
 	OperationCode          int16
 	ErrorCodes             int16
-	PVGenerationTotal      int32
-	PVGenerationToday      int32
+	EnergyGenerationTotal  int32
+	EnergyGenerationToday  int32
 	EnergyExportTotal      int32
 	EnergyExportTotalHours int32
 	EnergyExportToday      int16
@@ -134,94 +154,118 @@ type etRuntimeData struct {
 	DiagStatusCode         int32
 }
 
+func filterSinglePhase[T numeric](v T, singlePhase bool) T {
+	if singlePhase {
+		return 0
+	}
+	return v
+}
+
+// toRuntimeData panics if the `locationName` constant cannot be resolved to a
+// time.Location.
 func (data *etRuntimeData) toRuntimeData(singlePhase bool) *ETRuntimeData {
-	filterSinglePhase := func(i int) int {
-		if singlePhase {
-			return 0
-		}
-		return i
+	yr := data.Timestamp[0]
+	mon := data.Timestamp[1]
+	day := data.Timestamp[2]
+	hr := data.Timestamp[3]
+	min := data.Timestamp[4]
+	sec := data.Timestamp[5]
+	loc, err := time.LoadLocation(locationName)
+	if err != nil {
+		panic(fmt.Sprintf("unknown location: %s", locationName))
 	}
 
 	return &ETRuntimeData{
-		PV1Voltage:             int(data.PV1Voltage),
-		PV1Current:             int(data.PV1Current),
-		PV1Power:               int(data.PV1Power),
-		PV2Voltage:             int(data.PV2Voltage),
-		PV2Current:             int(data.PV2Current),
-		PV2Power:               int(data.PV2Power),
-		PVPower:                int(data.PV1Power) + int(data.PV2Power),
+		Timestamp:              time.Date(2000+int(yr), time.Month(mon), int(day), int(hr), int(min), int(sec), 0, loc),
+		PV1Voltage:             newVoltage(data.PV1Voltage),
+		PV1Current:             newCurrent(data.PV1Current),
+		PV1Power:               newPower(data.PV1Power),
+		PV2Voltage:             newVoltage(data.PV2Voltage),
+		PV2Current:             newCurrent(data.PV2Current),
+		PV2Power:               newPower(data.PV2Power),
+		PVPower:                newPower(data.PV1Power + data.PV2Power),
 		PV2Mode:                data.PV2Mode,
 		PV1Mode:                data.PV1Mode,
-		OnGridL1Voltage:        int(data.OnGridL1Voltage),
-		OnGridL1Current:        int(data.OnGridL1Current),
-		OnGridL1Frequency:      int(data.OnGridL1Frequency),
-		OnGridL1Power:          int(data.OnGridL1Power),
-		OnGridL2Voltage:        filterSinglePhase(int(data.OnGridL2Voltage)),
-		OnGridL2Current:        filterSinglePhase(int(data.OnGridL2Current)),
-		OnGridL2Frequency:      filterSinglePhase(int(data.OnGridL2Frequency)),
-		OnGridL2Power:          filterSinglePhase(int(data.OnGridL2Power)),
-		OnGridL3Voltage:        filterSinglePhase(int(data.OnGridL3Voltage)),
-		OnGridL3Current:        filterSinglePhase(int(data.OnGridL3Current)),
-		OnGridL3Frequency:      filterSinglePhase(int(data.OnGridL3Frequency)),
-		OnGridL3Power:          filterSinglePhase(int(data.OnGridL3Power)),
+		OnGridL1Voltage:        newVoltage(data.OnGridL1Voltage),
+		OnGridL1Current:        newCurrent(data.OnGridL1Current),
+		OnGridL1Frequency:      newFrequency(data.OnGridL1Frequency),
+		OnGridL1Power:          newPower(data.OnGridL1Power),
+		OnGridL2Voltage:        newVoltage(filterSinglePhase(data.OnGridL2Voltage, singlePhase)),
+		OnGridL2Current:        newCurrent(filterSinglePhase(data.OnGridL2Current, singlePhase)),
+		OnGridL2Frequency:      newFrequency(filterSinglePhase(data.OnGridL2Frequency, singlePhase)),
+		OnGridL2Power:          newPower(filterSinglePhase(data.OnGridL2Power, singlePhase)),
+		OnGridL3Voltage:        newVoltage(filterSinglePhase(data.OnGridL3Voltage, singlePhase)),
+		OnGridL3Current:        newCurrent(filterSinglePhase(data.OnGridL3Current, singlePhase)),
+		OnGridL3Frequency:      newFrequency(filterSinglePhase(data.OnGridL3Frequency, singlePhase)),
+		OnGridL3Power:          newPower(filterSinglePhase(data.OnGridL3Power, singlePhase)),
 		GridMode:               int(data.GridMode),
-		TotalInverterPower:     int(data.TotalInverterPower),
-		ActivePower:            int(data.ActivePower),
+		TotalInverterPower:     newPower(data.TotalInverterPower),
+		ActivePower:            newPower(data.ActivePower),
 		ReactivePower:          int(data.ReactivePower),
 		ApparentPower:          int(data.ApparentPower),
-		BackupL1Voltage:        int(data.BackupL1Voltage),
-		BackupL1Current:        int(data.BackupL1Current),
-		BackupL1Frequency:      int(data.BackupL1Frequency),
+		BackupL1Voltage:        newVoltage(data.BackupL1Voltage),
+		BackupL1Current:        newCurrent(data.BackupL1Current),
+		BackupL1Frequency:      newFrequency(data.BackupL1Frequency),
 		LoadModeL1:             int(data.LoadModeL1),
-		BackupL1Power:          int(data.BackupL1Power),
-		BackupL2Voltage:        filterSinglePhase(int(data.BackupL2Voltage)),
-		BackupL2Current:        filterSinglePhase(int(data.BackupL2Current)),
-		BackupL2Frequency:      filterSinglePhase(int(data.BackupL2Frequency)),
-		LoadModeL2:             filterSinglePhase(int(data.LoadModeL2)),
-		BackupL2Power:          filterSinglePhase(int(data.BackupL2Power)),
-		BackupL3Voltage:        filterSinglePhase(int(data.BackupL3Voltage)),
-		BackupL3Current:        filterSinglePhase(int(data.BackupL3Current)),
-		BackupL3Frequency:      filterSinglePhase(int(data.BackupL3Frequency)),
-		LoadModeL3:             filterSinglePhase(int(data.LoadModeL3)),
-		BackupL3Power:          filterSinglePhase(int(data.BackupL3Power)),
-		LoadL1:                 int(data.LoadL1),
-		LoadL2:                 filterSinglePhase(int(data.LoadL2)),
-		LoadL3:                 filterSinglePhase(int(data.LoadL3)),
-		BackupLoad:             int(data.BackupLoad),
-		Load:                   int(data.Load),
+		BackupL1Power:          newPower(data.BackupL1Power),
+		BackupL2Voltage:        newVoltage(filterSinglePhase(data.BackupL2Voltage, singlePhase)),
+		BackupL2Current:        newCurrent(filterSinglePhase(data.BackupL2Current, singlePhase)),
+		BackupL2Frequency:      newFrequency(filterSinglePhase(data.BackupL2Frequency, singlePhase)),
+		LoadModeL2:             int(filterSinglePhase(data.LoadModeL2, singlePhase)),
+		BackupL2Power:          newPower(filterSinglePhase(data.BackupL2Power, singlePhase)),
+		BackupL3Voltage:        newVoltage(filterSinglePhase(data.BackupL3Voltage, singlePhase)),
+		BackupL3Current:        newCurrent(filterSinglePhase(data.BackupL3Current, singlePhase)),
+		BackupL3Frequency:      newFrequency(filterSinglePhase(data.BackupL3Frequency, singlePhase)),
+		LoadModeL3:             int(filterSinglePhase(data.LoadModeL3, singlePhase)),
+		BackupL3Power:          newPower(filterSinglePhase(data.BackupL3Power, singlePhase)),
+		LoadL1:                 newPower(data.LoadL1),
+		LoadL2:                 newPower(filterSinglePhase(data.LoadL2, singlePhase)),
+		LoadL3:                 newPower(filterSinglePhase(data.LoadL3, singlePhase)),
+		BackupLoad:             newPower(data.BackupLoad),
+		Load:                   newPower(data.Load),
 		UPSLoad:                int(data.UPSLoad),
-		TemperatureAir:         int(data.TemperatureAir),
-		TemperatureModule:      int(data.TemperatureModule),
-		Temperature:            int(data.Temperature),
+		TemperatureAir:         newTemp(data.TemperatureAir),
+		TemperatureModule:      newTemp(data.TemperatureModule),
+		Temperature:            newTemp(data.Temperature),
 		FunctionBit:            int(data.FunctionBit),
-		BusVoltage:             int(data.BusVoltage),
-		NBusVoltage:            int(data.NBusVoltage),
-		BatteryVoltage:         int(data.BatteryVoltage),
-		BatteryCurrent:         int(data.BatteryCurrent),
+		BusVoltage:             newVoltage(data.BusVoltage),
+		NBusVoltage:            newVoltage(data.NBusVoltage),
+		BatteryVoltage:         newVoltage(data.BatteryVoltage),
+		BatteryCurrent:         newCurrent(data.BatteryCurrent),
 		BatteryMode:            int(data.BatteryMode),
 		WarningCode:            int(data.WarningCode),
 		SafetyCountryCode:      int(data.SafetyCountryCode),
 		WorkMode:               int(data.WorkMode),
 		OperationCode:          int(data.OperationCode),
 		ErrorCodes:             int(data.ErrorCodes),
-		PVGenerationTotal:      int(data.PVGenerationTotal),
-		PVGenerationToday:      int(data.PVGenerationToday),
-		EnergyExportTotal:      int(data.EnergyExportTotal),
+		EnergyGenerationTotal:  newEnergy(data.EnergyGenerationTotal),
+		EnergyGenerationToday:  newEnergy(data.EnergyGenerationToday),
+		EnergyExportTotal:      newEnergy(data.EnergyExportTotal),
 		EnergyExportTotalHours: int(data.EnergyExportTotalHours),
-		EnergyExportToday:      int(data.EnergyExportToday),
-		EnergyImportTotal:      int(data.EnergyImportTotal),
-		EnergyImportToday:      int(data.EnergyImportToday),
-		EnergyLoadTotal:        int(data.EnergyLoadTotal),
-		EnergyLoadDay:          int(data.EnergyLoadDay),
+		EnergyExportToday:      newEnergy(data.EnergyExportToday),
+		EnergyImportTotal:      newEnergy(data.EnergyImportTotal),
+		EnergyImportToday:      newEnergy(data.EnergyImportToday),
+		EnergyLoadTotal:        newEnergy(data.EnergyLoadTotal),
+		EnergyLoadDay:          newEnergy(data.EnergyLoadDay),
 		BatteryChargeTotal:     int(data.BatteryChargeTotal),
 		BatteryChargeToday:     int(data.BatteryChargeToday),
 		BatteryDischargeTotal:  int(data.BatteryDischargeTotal),
 		BatteryDischargeToday:  int(data.BatteryDischargeToday),
 		DiagStatusCode:         int(data.DiagStatusCode),
-		HouseConsumption:       int32(float64(data.PV1Power) + float64(data.PV2Power) + math.Round(float64(data.BatteryVoltage)*float64(data.BatteryCurrent)) - float64(data.ActivePower)),
+		HouseConsumption:       Power(int32(float64(data.PV1Power) + float64(data.PV2Power) + math.Round(float64(data.BatteryVoltage)*float64(data.BatteryCurrent)) - float64(data.ActivePower))),
 	}
 }
 
+func (inv ET) DecodeRuntimeData(p []byte) (*ETRuntimeData, error) {
+	var runtimeData etRuntimeData
+	if err := binary.Read(bytes.NewReader(p), binary.BigEndian, &runtimeData); err != nil {
+		return nil, fmt.Errorf("error parsing response: %s", err)
+	}
+
+	return runtimeData.toRuntimeData(inv.isSinglePhase()), nil
+}
+
+// DEPRECATED
 func (inv ET) DeviceInfo(ctx context.Context, conn io.ReadWriter) (*DeviceInfo, error) {
 	resp, err := command.Send(command.NewModbus(command.ModbusCommandTypeRead, 0x88b8, 0x0021), conn)
 	if err != nil {
@@ -236,6 +280,7 @@ func (inv ET) DeviceInfo(ctx context.Context, conn io.ReadWriter) (*DeviceInfo, 
 	return deviceInfo.toDeviceInfo(), nil
 }
 
+// DEPRECATED
 func (inv ET) RuntimeData(ctx context.Context, conn io.ReadWriter) (*ETRuntimeData, error) {
 	deviceInfo, err := inv.DeviceInfo(ctx, conn)
 	if err != nil {
