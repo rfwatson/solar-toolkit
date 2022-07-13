@@ -31,7 +31,7 @@ func main() {
 	}
 
 	store := store.NewSQL(db)
-	handler := handler.NewHandler(store)
+	handler := handler.New(store)
 	srv := http.Server{
 		ReadTimeout:  time.Second * 3,
 		WriteTimeout: time.Second * 3,
