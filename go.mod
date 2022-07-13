@@ -1,4 +1,4 @@
-module git.netflux.io/rob/goodwe-go
+module git.netflux.io/rob/solar-toolkit
 
 go 1.18
 

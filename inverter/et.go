@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"git.netflux.io/rob/goodwe-go/command"
+	"git.netflux.io/rob/solar-toolkit/command"
 )
 
 // The timezone used to parse timestamps.

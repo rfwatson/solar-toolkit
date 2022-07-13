@@ -1,3 +1,3 @@
-# goodwe-go
+# solar-toolkit
 
-A small project to read data from a Goodwe solar inverter using Go. Based on https://pypi.org/project/goodwe/.
+A side project to collect, transport and store data from a Goodwe solar inverter.

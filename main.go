@@ -9,7 +9,7 @@ import (
 	"os"
 	"time"
 
-	"git.netflux.io/rob/goodwe-go/inverter"
+	"git.netflux.io/rob/solar-toolkit/inverter"
 )
 
 const commandTimeout = time.Second * 5

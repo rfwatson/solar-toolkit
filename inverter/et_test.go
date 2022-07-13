@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"git.netflux.io/rob/goodwe-go/inverter"
+	"git.netflux.io/rob/solar-toolkit/inverter"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
