@@ -33,6 +33,13 @@ func TestHandler(t *testing.T) {
 		wantBody       string
 	}{
 		{
+			name:           "healthz",
+			httpMethod:     http.MethodGet,
+			path:           "/healthz",
+			wantStatusCode: http.StatusOK,
+			wantBody:       "OK\n",
+		},
+		{
 			name:           "method not allowed",
 			httpMethod:     http.MethodGet,
 			path:           "/gateway/et_runtime_data",

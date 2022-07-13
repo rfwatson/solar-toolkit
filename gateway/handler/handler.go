@@ -22,6 +22,12 @@ type Handler struct {
 func New(store Store) *Handler { return &Handler{store: store} }
 
 func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method == http.MethodGet && r.URL.Path == "/healthz" {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("OK\n"))
+		return
+	}
+
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -59,7 +65,6 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("content-type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK\n"))
 }
