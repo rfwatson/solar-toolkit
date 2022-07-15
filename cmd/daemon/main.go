@@ -87,7 +87,6 @@ func main() {
 			log.Printf("unexpected HTTP response code: %d", resp.StatusCode)
 			continue
 		}
-
-		log.Printf("Sent: %+v", runtimeData)
+		log.Printf("OK: %s", runtimeData.PVPower.String())
 	}
 }
