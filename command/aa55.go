@@ -41,7 +41,7 @@ func aa55Checksum(payload []byte) []byte {
 
 func (cmd AA55Command) String() string { return string(cmd.payload) }
 
-func (cmd AA55Command) validateResponse(p []byte) ([]byte, error) {
+func (cmd AA55Command) ValidateResponse(p []byte) ([]byte, error) {
 	if len(p) < 8 {
 		return nil, fmt.Errorf("response truncated")
 	}

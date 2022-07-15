@@ -58,6 +58,6 @@ func modbusChecksum(b []byte) uint16 {
 
 func (cmd ModbusCommand) String() string { return string(cmd.payload) }
 
-func (cmd ModbusCommand) validateResponse(p []byte) ([]byte, error) {
+func (cmd ModbusCommand) ValidateResponse(p []byte) ([]byte, error) {
 	return p[5 : len(p)-2], nil
 }

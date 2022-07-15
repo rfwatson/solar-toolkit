@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/binary"
 	"fmt"
-	"io"
 	"math"
 	"strings"
 	"time"
@@ -266,7 +265,7 @@ func (inv ET) DecodeRuntimeData(p []byte) (*ETRuntimeData, error) {
 }
 
 // DEPRECATED
-func (inv ET) DeviceInfo(ctx context.Context, conn io.ReadWriter) (*DeviceInfo, error) {
+func (inv ET) DeviceInfo(ctx context.Context, conn command.Conn) (*DeviceInfo, error) {
 	resp, err := command.Send(command.NewModbus(command.ModbusCommandTypeRead, 0x88b8, 0x0021), conn)
 	if err != nil {
 		return nil, fmt.Errorf("error sending command: %s", err)
@@ -281,7 +280,7 @@ func (inv ET) DeviceInfo(ctx context.Context, conn io.ReadWriter) (*DeviceInfo, 
 }
 
 // DEPRECATED
-func (inv ET) RuntimeData(ctx context.Context, conn io.ReadWriter) (*ETRuntimeData, error) {
+func (inv ET) RuntimeData(ctx context.Context, conn command.Conn) (*ETRuntimeData, error) {
 	deviceInfo, err := inv.DeviceInfo(ctx, conn)
 	if err != nil {
 		return nil, fmt.Errorf("error fetching device info: %s", err)
