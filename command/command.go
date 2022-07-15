@@ -20,7 +20,7 @@ type Conn interface {
 
 const (
 	maxAttempts         = 3
-	timeout             = time.Second * 3
+	timeout             = time.Second * 5
 	readBufferSizeBytes = 4_096
 )
 
