@@ -35,7 +35,7 @@ func main() {
 	flag.DurationVar(&pollInterval, "pollInterval", time.Minute, "Poll interval, example: 60s")
 	flag.Parse()
 
-	if gatewayEndpoint == "" {
+	if gatewayEndpoint == "" || inverterAddr == "" {
 		flag.Usage()
 		os.Exit(1)
 	}
