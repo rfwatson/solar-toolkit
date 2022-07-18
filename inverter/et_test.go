@@ -139,3 +139,56 @@ func TestDecodeDeviceInfo(t *testing.T) {
 		assert.Equal(t, inverter.Power(0), runtimeData.LoadL3)
 	})
 }
+
+func TestDecodeMeterData(t *testing.T) {
+	inBytes := []byte{0, 1, 0, 45, 0, 10, 0, 0, 0, 1, 4, 114, 0, 0, 0, 0, 4, 114, 0, 226, 3, 201, 3, 231, 3, 231, 3, 200, 19, 132, 73, 48, 193, 246, 71, 195, 119, 16, 0, 0, 4, 114, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 114, 0, 0, 0, 226, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 226, 0, 0, 4, 151, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 151, 0, 255, 9, 44}
+
+	t.Run("with single-phase inverter", func(t *testing.T) {
+		inv := inverter.ET{SerialNumber: "foo"}
+		meterData, err := inv.DecodeMeterData(inBytes)
+		require.NoError(t, err)
+
+		assert.Equal(t, 1, meterData.ComMode)
+		assert.Equal(t, 45, meterData.RSSI)
+		assert.Equal(t, 10, meterData.ManufactureCode)
+		assert.Equal(t, 0, meterData.MeterTestStatus)
+		assert.Equal(t, 1, meterData.MeterCommStatus)
+		assert.Equal(t, inverter.Power(1138), meterData.ActivePowerL1)
+		assert.Equal(t, inverter.Power(0), meterData.ActivePowerL2)
+		assert.Equal(t, inverter.Power(0), meterData.ActivePowerL3)
+		assert.Equal(t, inverter.Power(1138), meterData.ActivePowerTotal)
+		assert.Equal(t, 226, meterData.ReactivePowerTotal)
+		assert.Equal(t, 0.969, meterData.MeterPowerFactor1)
+		assert.Equal(t, 0.999, meterData.MeterPowerFactor2)
+		assert.Equal(t, 0.999, meterData.MeterPowerFactor3)
+		assert.Equal(t, 0.968, meterData.MeterPowerFactor)
+		assert.Equal(t, inverter.Frequency(49.96), meterData.MeterFrequency)
+		assert.Equal(t, inverter.Power(723999.375000), meterData.EnergyExportTotal)
+		assert.Equal(t, inverter.Power(100078.125000), meterData.EnergyImportTotal)
+		assert.Equal(t, inverter.Power(1138), meterData.MeterActivePower1)
+		assert.Equal(t, inverter.Power(0), meterData.MeterActivePower2)
+		assert.Equal(t, inverter.Power(0), meterData.MeterActivePower3)
+		assert.Equal(t, inverter.Power(1138), meterData.MeterActivePowerTotal)
+		assert.Equal(t, 226, meterData.MeterReactivePower1)
+		assert.Equal(t, 0, meterData.MeterReactivePower2)
+		assert.Equal(t, 0, meterData.MeterReactivePower3)
+		assert.Equal(t, 226, meterData.MeterReactivePowerTotal)
+		assert.Equal(t, 1175, meterData.MeterApparentPower1)
+		assert.Equal(t, 0, meterData.MeterApparentPower2)
+		assert.Equal(t, 0, meterData.MeterApparentPower3)
+		assert.Equal(t, 1175, meterData.MeterApparentPowerTotal)
+		assert.Equal(t, 255, meterData.MeterType)
+		assert.Equal(t, 2348, meterData.MeterSoftwareVersion)
+	})
+
+	t.Run("with multi-phase inverter", func(t *testing.T) {
+		inv := inverter.ET{SerialNumber: "EHUfoo"}
+		meterData, err := inv.DecodeMeterData(inBytes)
+		require.NoError(t, err)
+
+		assert.Equal(t, 0.969, meterData.MeterPowerFactor1)
+		assert.Equal(t, 0.0, meterData.MeterPowerFactor2)
+		assert.Equal(t, 0.0, meterData.MeterPowerFactor3)
+		assert.Equal(t, 0.968, meterData.MeterPowerFactor)
+	})
+}

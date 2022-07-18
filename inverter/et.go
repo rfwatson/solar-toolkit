@@ -60,6 +60,77 @@ func (info *etDeviceInfo) toDeviceInfo() *DeviceInfo {
 }
 
 // Unexported struct used for parsing binary data only.
+type etMeterData struct {
+	ComMode                 int16
+	RSSI                    int16
+	ManufactureCode         int16
+	MeterTestStatus         int16
+	MeterCommStatus         int16
+	ActivePowerL1           int16
+	ActivePowerL2           int16
+	ActivePowerL3           int16
+	ActivePowerTotal        int16
+	ReactivePowerTotal      int16
+	MeterPowerFactor1       int16
+	MeterPowerFactor2       int16
+	MeterPowerFactor3       int16
+	MeterPowerFactor        int16
+	MeterFrequency          int16
+	EnergyExportTotal       float32
+	EnergyImportTotal       float32
+	MeterActivePower1       int32
+	MeterActivePower2       int32
+	MeterActivePower3       int32
+	MeterActivePowerTotal   int32
+	MeterReactivePower1     int32
+	MeterReactivePower2     int32
+	MeterReactivePower3     int32
+	MeterReactivePowerTotal int32
+	MeterApparentPower1     int32
+	MeterApparentPower2     int32
+	MeterApparentPower3     int32
+	MeterApparentPowerTotal int32
+	MeterType               int16
+	MeterSoftwareVersion    int16
+}
+
+func (data *etMeterData) toMeterData(singlePhase bool) *ETMeterData {
+	return &ETMeterData{
+		ComMode:                 int(data.ComMode),
+		RSSI:                    int(data.RSSI),
+		ManufactureCode:         int(data.ManufactureCode),
+		MeterTestStatus:         int(data.MeterTestStatus),
+		MeterCommStatus:         int(data.MeterCommStatus),
+		ActivePowerL1:           newPower(data.ActivePowerL1),
+		ActivePowerL2:           newPower(data.ActivePowerL2),
+		ActivePowerL3:           newPower(data.ActivePowerL3),
+		ActivePowerTotal:        newPower(data.ActivePowerTotal),
+		ReactivePowerTotal:      int(data.ReactivePowerTotal),
+		MeterPowerFactor1:       float64(data.MeterPowerFactor1) / 1000.0,
+		MeterPowerFactor2:       float64(filterSinglePhase(data.MeterPowerFactor2, singlePhase)) / 1000.0,
+		MeterPowerFactor3:       float64(filterSinglePhase(data.MeterPowerFactor3, singlePhase)) / 1000.0,
+		MeterPowerFactor:        float64(data.MeterPowerFactor) / 1000.0,
+		MeterFrequency:          newFrequency(data.MeterFrequency),
+		EnergyExportTotal:       newPower(data.EnergyExportTotal),
+		EnergyImportTotal:       newPower(data.EnergyImportTotal),
+		MeterActivePower1:       newPower(data.MeterActivePower1),
+		MeterActivePower2:       newPower(data.MeterActivePower2),
+		MeterActivePower3:       newPower(data.MeterActivePower3),
+		MeterActivePowerTotal:   newPower(data.MeterActivePowerTotal),
+		MeterReactivePower1:     int(data.MeterReactivePower1),
+		MeterReactivePower2:     int(data.MeterReactivePower2),
+		MeterReactivePower3:     int(data.MeterReactivePower3),
+		MeterReactivePowerTotal: int(data.MeterReactivePowerTotal),
+		MeterApparentPower1:     int(data.MeterApparentPower1),
+		MeterApparentPower2:     int(data.MeterApparentPower2),
+		MeterApparentPower3:     int(data.MeterApparentPower3),
+		MeterApparentPowerTotal: int(data.MeterApparentPowerTotal),
+		MeterType:               int(data.MeterType),
+		MeterSoftwareVersion:    int(data.MeterSoftwareVersion),
+	}
+}
+
+// Unexported struct used for parsing binary data only.
 //
 // Raw types are based partly on the the PyPI library, and partly on the
 // third-party online documentation:
@@ -264,6 +335,15 @@ func (inv ET) DecodeRuntimeData(p []byte) (*ETRuntimeData, error) {
 	return runtimeData.toRuntimeData(inv.isSinglePhase()), nil
 }
 
+func (inv ET) DecodeMeterData(p []byte) (*ETMeterData, error) {
+	var meterData etMeterData
+	if err := binary.Read(bytes.NewReader(p), binary.BigEndian, &meterData); err != nil {
+		return nil, fmt.Errorf("error parsing response: %s", err)
+	}
+
+	return meterData.toMeterData(inv.isSinglePhase()), nil
+}
+
 // DEPRECATED
 func (inv ET) DeviceInfo(ctx context.Context, conn command.Conn) (*DeviceInfo, error) {
 	resp, err := command.Send(command.NewModbus(command.ModbusCommandTypeRead, 0x88b8, 0x0021), conn)
@@ -297,4 +377,20 @@ func (inv ET) RuntimeData(ctx context.Context, conn command.Conn) (*ETRuntimeDat
 	}
 
 	return runtimeData.toRuntimeData(deviceInfo.SinglePhase), nil
+}
+
+// DEPRECATED
+func (inv ET) MeterData(ctx context.Context, conn command.Conn) (*ETMeterData, error) {
+	resp, err := command.Send(command.NewModbus(command.ModbusCommandTypeRead, 0x8ca0, 0x2d), conn)
+	if err != nil {
+		return nil, fmt.Errorf("error sending command: %s", err)
+	}
+
+	var meterData etMeterData
+	if err := binary.Read(bytes.NewReader(resp), binary.BigEndian, &meterData); err != nil {
+		return nil, fmt.Errorf("error parsing response: %s", err)
+	}
+
+	// TODO: wire in single phase:
+	return meterData.toMeterData(true), nil
 }
