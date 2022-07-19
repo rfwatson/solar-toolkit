@@ -138,35 +138,40 @@ type ETRuntimeData struct {
 }
 
 type ETMeterData struct {
-	ComMode                 int       `json:"com_mode"`
-	RSSI                    int       `json:"rssi"`
-	ManufactureCode         int       `json:"manufacture_code"`
-	MeterTestStatus         int       `json:"meter_test_status"`
-	MeterCommStatus         int       `json:"meter_comm_status"`
-	ActivePowerL1           Power     `json:"active_power_l1"`
-	ActivePowerL2           Power     `json:"active_power_l2"`
-	ActivePowerL3           Power     `json:"active_power_l3"`
-	ActivePowerTotal        Power     `json:"active_power_total"`
-	ReactivePowerTotal      int       `json:"reactive_power_total"`
-	MeterPowerFactor1       float64   `json:"meter_power_factor1"`
-	MeterPowerFactor2       float64   `json:"meter_power_factor2"`
-	MeterPowerFactor3       float64   `json:"meter_power_factor3"`
-	MeterPowerFactor        float64   `json:"meter_power_factor"`
-	MeterFrequency          Frequency `json:"meter_frequency"`
-	EnergyExportTotal       Power     `json:"energy_export_total"`
-	EnergyImportTotal       Power     `json:"energy_import_total"`
-	MeterActivePower1       Power     `json:"meter_active_power1"`
-	MeterActivePower2       Power     `json:"meter_active_power2"`
-	MeterActivePower3       Power     `json:"meter_active_power3"`
-	MeterActivePowerTotal   Power     `json:"meter_active_power_total"`
-	MeterReactivePower1     int       `json:"meter_reactive_power1"`
-	MeterReactivePower2     int       `json:"meter_reactive_power2"`
-	MeterReactivePower3     int       `json:"meter_reactive_power3"`
-	MeterReactivePowerTotal int       `json:"meter_reactive_power_total"`
-	MeterApparentPower1     int       `json:"meter_apparent_power1"`
-	MeterApparentPower2     int       `json:"meter_apparent_power2"`
-	MeterApparentPower3     int       `json:"meter_apparent_power3"`
-	MeterApparentPowerTotal int       `json:"meter_apparent_power_total"`
-	MeterType               int       `json:"meter_type"`
-	MeterSoftwareVersion    int       `json:"meter_software_version"`
+	ComMode                 int       `json:"com_mode" db:"-"`
+	RSSI                    int       `json:"-" db:"-"`
+	ManufactureCode         int       `json:"manufacture_code" db:"-"`
+	MeterTestStatus         int       `json:"meter_test_status" db:"meter_test_status"`
+	MeterCommStatus         int       `json:"meter_comm_status" db:"meter_comm_status"`
+	ActivePowerL1           Power     `json:"active_power_l1" db:"active_power_l1"`
+	ActivePowerL2           Power     `json:"active_power_l2" db:"active_power_l2"`
+	ActivePowerL3           Power     `json:"active_power_l3" db:"active_power_l3"`
+	ActivePowerTotal        Power     `json:"active_power_total" db:"active_power_total"`
+	ReactivePowerTotal      int       `json:"reactive_power_total" db:"reactive_power_total"`
+	MeterPowerFactor1       float64   `json:"meter_power_factor1" db:"meter_power_factor1"`
+	MeterPowerFactor2       float64   `json:"meter_power_factor2" db:"meter_power_factor2"`
+	MeterPowerFactor3       float64   `json:"meter_power_factor3" db:"meter_power_factor3"`
+	MeterPowerFactor        float64   `json:"meter_power_factor" db:"meter_power_factor"`
+	MeterFrequency          Frequency `json:"meter_frequency" db:"meter_frequency"`
+	EnergyExportTotal       Power     `json:"meter_energy_export_total" db:"meter_energy_export_total"`
+	EnergyImportTotal       Power     `json:"meter_energy_import_total" db:"meter_energy_import_total"`
+	MeterActivePower1       Power     `json:"meter_active_power1" db:"meter_active_power1"`
+	MeterActivePower2       Power     `json:"meter_active_power2" db:"meter_active_power2"`
+	MeterActivePower3       Power     `json:"meter_active_power3" db:"meter_active_power3"`
+	MeterActivePowerTotal   Power     `json:"meter_active_power_total" db:"meter_active_power_total"`
+	MeterReactivePower1     int       `json:"meter_reactive_power1" db:"meter_reactive_power1"`
+	MeterReactivePower2     int       `json:"meter_reactive_power2" db:"meter_reactive_power2"`
+	MeterReactivePower3     int       `json:"meter_reactive_power3" db:"meter_reactive_power3"`
+	MeterReactivePowerTotal int       `json:"meter_reactive_power_total" db:"meter_reactive_power_total"`
+	MeterApparentPower1     int       `json:"meter_apparent_power1" db:"meter_apparent_power1"`
+	MeterApparentPower2     int       `json:"meter_apparent_power2" db:"meter_apparent_power2"`
+	MeterApparentPower3     int       `json:"meter_apparent_power3" db:"meter_apparent_power3"`
+	MeterApparentPowerTotal int       `json:"meter_apparent_power_total" db:"meter_apparent_power_total"`
+	MeterType               int       `json:"meter_type" db:"-"`
+	MeterSoftwareVersion    int       `json:"meter_software_version" db:"meter_software_version"`
+}
+
+type ETDataFrame struct {
+	*ETRuntimeData
+	*ETMeterData
 }

@@ -14,11 +14,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type store struct {
+type mockStore struct {
 	err error
 }
 
-func (s *store) InsertETRuntimeData(*inverter.ETRuntimeData) error {
+func (s *mockStore) InsertDataFrame(*inverter.ETDataFrame) error {
 	return s.err
 }
 
@@ -90,7 +90,7 @@ func TestHandler(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			mockStore := store{err: tc.storeErr}
+			mockStore := mockStore{err: tc.storeErr}
 			handler := handler.New(&mockStore)
 			req := httptest.NewRequest(tc.httpMethod, tc.path, strings.NewReader(tc.body))
 			rec := httptest.NewRecorder()

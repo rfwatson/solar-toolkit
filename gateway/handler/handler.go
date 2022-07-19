@@ -12,7 +12,7 @@ import (
 const timestampMinimumYear = 2022
 
 type Store interface {
-	InsertETRuntimeData(*inverter.ETRuntimeData) error
+	InsertDataFrame(*inverter.ETDataFrame) error
 }
 
 type Handler struct {
@@ -48,7 +48,7 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	var runtimeData inverter.ETRuntimeData
 	err = json.Unmarshal(body, &runtimeData)
 	if err != nil {
-		log.Printf("could not unmarshal body: %v", err)
+		log.Printf("could not unmarshal runtime data body: %v", err)
 		http.Error(w, "unexpected error", http.StatusInternalServerError)
 		return
 	}
@@ -59,7 +59,16 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err = h.store.InsertETRuntimeData(&runtimeData); err != nil {
+	var meterData inverter.ETMeterData
+	err = json.Unmarshal(body, &meterData)
+	if err != nil {
+		log.Printf("could not unmarshal meterData body: %v", err)
+		http.Error(w, "unexpected error", http.StatusInternalServerError)
+		return
+	}
+
+	dataFrame := inverter.ETDataFrame{ETRuntimeData: &runtimeData, ETMeterData: &meterData}
+	if err = h.store.InsertDataFrame(&dataFrame); err != nil {
 		log.Printf("error storing data: %v", err)
 		http.Error(w, "unexpected error", http.StatusInternalServerError)
 		return

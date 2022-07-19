@@ -60,9 +60,16 @@ func main() {
 			continue
 		}
 
-		reqBody, err := json.Marshal(runtimeData)
+		meterData, err := inv.MeterData(context.Background(), conn)
 		if err != nil {
-			log.Printf("error encoding runtime data: %s", err)
+			log.Printf("error fetching meter data: %s", err)
+			continue
+		}
+
+		frame := inverter.ETDataFrame{ETRuntimeData: runtimeData, ETMeterData: meterData}
+		reqBody, err := json.Marshal(frame)
+		if err != nil {
+			log.Printf("error encoding frame: %s", err)
 			continue
 		}
 
