@@ -5,7 +5,7 @@ name: default
 
 steps:
 - name: backend
-  image: golang:1.18
+  image: golang:1.19
   commands:
     - go install honnef.co/go/tools/cmd/staticcheck@latest
     - go build ./...
