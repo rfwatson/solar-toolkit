@@ -19,9 +19,9 @@ type Conn interface {
 }
 
 const (
-	maxAttempts         = 3
-	timeout             = time.Second * 5
-	readBufferSizeBytes = 4_096
+	maxAttempts         = 4
+	timeout             = time.Second * 10
+	readBufferSizeBytes = 8_192
 )
 
 // Send writes the command to the provided Writer, and reads and validates the
