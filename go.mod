@@ -4,9 +4,9 @@ go 1.21
 
 require (
 	github.com/jmoiron/sqlx v1.3.5
-	github.com/lib/pq v1.10.6
+	github.com/lib/pq v1.10.9
 	github.com/stretchr/testify v1.8.0
-	golang.org/x/exp v0.0.0-20220706164943-b4a6d9510983
+	golang.org/x/exp v0.0.0-20230905200255-921286631fa9
 )
 
 require (
