@@ -57,6 +57,7 @@ type DeviceInfo struct {
 	SinglePhase     bool   `json:"single_phase"`
 }
 
+// ETRuntimeData holds parsed runtime data for the ET series of inverters.
 type ETRuntimeData struct {
 	Timestamp              time.Time `json:"timestamp" db:"timestamp"`
 	PV1Voltage             Voltage   `json:"pv1_voltage" db:"pv1_voltage"`
@@ -137,6 +138,7 @@ type ETRuntimeData struct {
 	HouseConsumption       Power     `json:"house_consumption" db:"house_consumption"`
 }
 
+// ETMeterData holds parsed meter data for the ET series of inverters.
 type ETMeterData struct {
 	ComMode                 int       `json:"com_mode" db:"-"`
 	RSSI                    int       `json:"-" db:"-"`

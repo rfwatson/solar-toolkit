@@ -1,3 +1,5 @@
+// Package command provides communication patterns for Goodwe inverters using
+// the Modbus protocol.
 package command
 
 import (

@@ -1,3 +1,4 @@
+// Package inverter contains inverter model-specific functionality.
 package inverter
 
 import (
@@ -15,6 +16,9 @@ import (
 // The timezone used to parse timestamps.
 const locationName = "Europe/Madrid"
 
+// ET represents an inverter from Goodwe's ET/EH/BT/SH series.
+//
+// See: https://github.com/marcelblijleven/goodwe/blob/29de1c4303fffd3e984eb3314db4b5085fbaf334/goodwe/et.py#L16
 type ET struct {
 	SerialNumber string
 	ModelName    string
@@ -24,7 +28,7 @@ func (inv ET) isSinglePhase() bool {
 	return strings.Contains(inv.SerialNumber, "EHU")
 }
 
-// Unexported struct used for parsing binary data only.
+// etDeviceInfo is an unexported struct used for parsing binary data only.
 type etDeviceInfo struct {
 	ModbusVersion   uint16
 	RatedPower      uint16
@@ -59,7 +63,7 @@ func (info *etDeviceInfo) toDeviceInfo() *DeviceInfo {
 	}
 }
 
-// Unexported struct used for parsing binary data only.
+// etMeterData is an unexported struct used for parsing binary data only.
 type etMeterData struct {
 	ComMode                 int16
 	RSSI                    int16
@@ -130,7 +134,7 @@ func (data *etMeterData) toMeterData(singlePhase bool) *ETMeterData {
 	}
 }
 
-// Unexported struct used for parsing binary data only.
+// etRuntimeData is an unexported struct used for parsing binary data only.
 //
 // Raw types are based partly on the the PyPI library, and partly on the
 // third-party online documentation:
