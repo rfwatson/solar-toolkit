@@ -1,12 +1,12 @@
 module git.netflux.io/rob/solar-toolkit
 
-go 1.21
+go 1.24
 
 require (
-	github.com/jmoiron/sqlx v1.3.5
+	github.com/jmoiron/sqlx v1.4.0
 	github.com/lib/pq v1.10.9
 	github.com/stretchr/testify v1.8.4
-	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
+	golang.org/x/exp v0.0.0-20250606033433-dcc06ee1d476
 )
 
 require (

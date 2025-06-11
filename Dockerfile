@@ -1,5 +1,5 @@
-FROM golang:1.21-alpine3.18 as go-builder
-ENV GOPATH ""
+FROM golang:1.24-alpine3.21 AS go-builder
+ENV GOPATH=""
 
 RUN apk add git
 RUN go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
@@ -11,7 +11,7 @@ ADD ./ .
 RUN go build -o ./solar-toolkit-daemon ./cmd/daemon
 RUN go build -o ./solar-toolkit-gateway ./cmd/gateway
 
-FROM alpine:3.15
+FROM alpine:3.21
 
 COPY gateway/sql/migrations /app/migrations
 COPY --from=go-builder /app/solar-toolkit-gateway /app/solar-toolkit-gateway
