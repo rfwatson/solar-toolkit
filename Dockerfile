@@ -1,4 +1,4 @@
-FROM golang:1.24-alpine3.21 AS go-builder
+FROM golang:1.25-alpine3.22 AS go-builder
 ENV GOPATH=""
 
 RUN apk add git
