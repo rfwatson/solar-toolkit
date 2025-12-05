@@ -9,6 +9,7 @@ import (
 	"math"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	"git.netflux.io/rob/solar-toolkit/command"
 )
